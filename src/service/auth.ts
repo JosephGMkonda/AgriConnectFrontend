@@ -12,6 +12,9 @@ export class AuthService {
             password: userData.password
         })
 
+
+        console.log("Auth Data:", authData)
+        console.log("Auth Error:", authError)
         if(authError){
             throw new Error(authError.message)
         }
@@ -20,11 +23,14 @@ export class AuthService {
             throw new Error("User registration failed")
         }
 
-        const {data: djangoUser} = await api.post('/users/create', {
+        const {data: djangoUser} = await api.post('/users/create/', {
             supabase_uid: authData.user.id,
             username: userData.username,
             email: userData.email
         })
+
+        console.log("Django User Data:", djangoUser)
+        
 
         if(djangoUser.error) {
             throw new Error(djangoUser.error.message)

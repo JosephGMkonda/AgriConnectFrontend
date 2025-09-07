@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { RegisterData } from '../types/auth';
 import { Link } from 'react-router-dom';
 import { AuthService } from '../service/auth';
-
+import { ToastContainer, toast } from 'react-toastify';
 
 
 export const RegisterForm: React.FC = () => {
@@ -12,6 +12,7 @@ export const RegisterForm: React.FC = () => {
     password: '',
     confirmPassword: '',
   });
+  const notify = () => toast("Registered Successfully!");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -32,7 +33,7 @@ export const RegisterForm: React.FC = () => {
         email: formData.email,
         password: formData.password,
       });
-      alert('Registration successful! Please check your email for verification.');
+       <ToastContainer />
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -50,17 +51,17 @@ export const RegisterForm: React.FC = () => {
   
   const colors = {
     primary: {
-      500: '#2B8C44', // Green
-      600: '#1F6A33', // Darker Green
+      500: '#2B8C44', 
+      600: '#1F6A33', 
     },
     earth: {
-      500: '#8B5A2B', // Brown
-      600: '#6B451A', // Darker Brown
-      400: '#C19A6B', // Lighter Brown
+      500: '#8B5A2B', 
+      600: '#6B451A', 
+      400: '#C19A6B', 
     },
     accent: {
-      500: '#D4A017', // Gold/Yellow
-      400: '#F4D03F', // Lighter Gold
+      500: '#D4A017', 
+      400: '#F4D03F', 
     }
   };
 
