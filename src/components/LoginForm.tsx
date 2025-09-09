@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import type { LoginData } from '../types/auth';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { AuthService } from '../service/auth';
 
 export const LoginForm: React.FC = () => {
   const [formData, setFormData] = useState<LoginData>({
     email: '',
     password: '',
   });
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -16,10 +20,41 @@ export const LoginForm: React.FC = () => {
     setError('');
 
     try {
-      // const { user } = await AuthService.login(formData);
-      // console.log('Login successful:', user);
-      alert('Login functionality would go here');
+      const result = await AuthService.login(formData);
+
+       toast.success('successfully Login...', {
+              position: "top-right",
+              autoClose: 3000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            });
+
+           setTimeout(() => {
+        navigate('/profile');
+      }, 2000);
+
+      
     } catch (err: any) {
+
+        let errorMessage = err.message || 'Login failed!';
+      
+      
+      if (err.message.includes('Invalid login credentials')) {
+        errorMessage = 'Invalid email or password';
+      } else if (err.message.includes('Email not confirmed')) {
+        errorMessage = 'Please confirm your email before logging in';
+      }
+
+            toast.error(err.message || 'Login failed!', {
+              position: "top-right",
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            });
       setError(err.message);
     } finally {
       setLoading(false);
@@ -33,20 +68,20 @@ export const LoginForm: React.FC = () => {
     });
   };
 
-  // Define your custom colors as constants
+  
   const colors = {
     primary: {
-      500: '#2B8C44', // Green
-      600: '#1F6A33', // Darker Green
-      400: '#7EBF8D', // Lighter Green
+      500: '#2B8C44', 
+      600: '#1F6A33', 
+      400: '#7EBF8D', 
     },
     earth: {
-      500: '#8B5A2B', // Brown
-      600: '#6B451A', // Darker Brown
+      500: '#8B5A2B', 
+      600: '#6B451A', 
     },
     accent: {
-      500: '#D4A017', // Gold/Yellow
-      400: '#F4D03F', // Lighter Gold
+      500: '#D4A017', 
+      400: '#F4D03F', 
     }
   };
 
@@ -59,19 +94,21 @@ export const LoginForm: React.FC = () => {
     >
       <div className="max-w-md w-full space-y-8 bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
         
-        {/* Header */}
+        
         <div className="text-center">
           <div 
             className="mx-auto h-16 w-16 rounded-full flex items-center justify-center"
             style={{ backgroundColor: colors.primary[500] }}
           >
-            <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+           <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">Welcome Back</h2>
           <p className="mt-2 text-sm text-gray-600">Sign in to your AgriConnect account</p>
         </div>
+
+        <ToastContainer />
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (

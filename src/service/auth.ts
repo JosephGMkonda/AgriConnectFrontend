@@ -55,15 +55,30 @@ export class AuthService {
 
         localStorage.setItem("token", authData.session.access_token)
 
-        const {data: user} = await api.get('/users/me')
+        const userId = authData.user.id
+        const { data: user } = await api.get('/users/me/');
+
+
 
         return { user, token: authData.session.access_token }
     }
 
     static async getCurrentUser(): Promise<User>{
-        const {data: user} = await api.get('/users/me')
+
+        const {data: session} = await supabase.auth.getSession()
+        if(!session.session) {
+            throw new Error("No active session")
+        }
+
+        const { data: user } = await api.get('/users/me/', {
+  headers: {
+    Authorization: `Bearer ${session.session.access_token}`,
+  },
+});
+
         return user
     }
+
 
     static async logout(): Promise<void>{
         localStorage.removeItem("token")

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import type { RegisterData } from '../types/auth';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthService } from '../service/auth';
 import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 
 export const RegisterForm: React.FC = () => {
@@ -12,7 +13,7 @@ export const RegisterForm: React.FC = () => {
     password: '',
     confirmPassword: '',
   });
-  const notify = () => toast("Registered Successfully!");
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
@@ -33,8 +34,31 @@ export const RegisterForm: React.FC = () => {
         email: formData.email,
         password: formData.password,
       });
-       <ToastContainer />
+
+      toast.success('Registration successful! Redirecting to login...', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
+      
     } catch (err: any) {
+
+        toast.error(err.message || 'Registration failed!', {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
       setError(err.message);
     } finally {
       setLoading(false);
@@ -72,6 +96,7 @@ export const RegisterForm: React.FC = () => {
         background: `linear-gradient(135deg, ${colors.earth[400]}20 0%, ${colors.accent[400]}10 100%)` 
       }}
     >
+       
       <div className="max-w-md w-full space-y-8 bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
         
         <div className="text-center">
@@ -86,6 +111,7 @@ export const RegisterForm: React.FC = () => {
           <h2 className="mt-6 text-3xl font-bold text-gray-900">Join AgriConnect</h2>
           <p className="mt-2 text-sm text-gray-600">Create your account and start sharing knowledge</p>
         </div>
+         <ToastContainer />
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
