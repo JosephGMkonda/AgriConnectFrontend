@@ -104,7 +104,7 @@ export const LoginForm: React.FC = () => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">Welcome Back</h2>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">AgriConnect</h2>
           <p className="mt-2 text-sm text-gray-600">Sign in to your AgriConnect account</p>
         </div>
 
