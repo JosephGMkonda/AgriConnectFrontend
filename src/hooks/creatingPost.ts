@@ -20,20 +20,22 @@ interface Post {
 
 }
 
-interface PostsState{
-    posts: Post[];
-    loading: boolean;
-    creating: boolean;
-    error: string | null;
-    currentPost: Post | null;
-
+interface PostsState {
+  posts: Post[];
+  loading: boolean;
+  error: string | null;
+  hasMore: boolean;
+  nextPage: number;
+  totalCount: number;
 }
-const initialState: PostsState= {
-    posts: [],
-    loading: false,
-    creating: false,
-    error: null,
-    currentPost: null
+
+const initialState: PostsState = {
+  posts: [],
+  loading: false,
+  error: null,
+  hasMore: true,
+  nextPage: 1,
+  totalCount: 0,
 };
 
 
@@ -69,18 +71,24 @@ export const createPost = createAsyncThunk(
 
 // fetching all post
 export const fetchPosts = createAsyncThunk(
-    'posts/fetchPosts',
-    async (_,{rejectWithValue}) => {
-        try {
-            const response = await api.get('/posts');
-            return response.data
-
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.error || error.message)
-            
-        }
+  'posts/fetchPosts',
+  async ({ page = 1, limit = 10 }: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
+    try {
+      const response = await api.get('/posts/', {
+        params: { page, limit, ordering: '-created_at' }
+      });
+      return {
+        posts: response.data.results,
+        totalCount: response.data.count,
+        page,
+        hasMore: !!response.data.next
+      };
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error || error.message);
     }
+  }
 );
+
 
 // updating post
 export const updatePost = createAsyncThunk(
@@ -165,10 +173,13 @@ const postSlice = createSlice({
         state.error = null;
       })
 
-        .addCase(fetchPosts.fulfilled, (state, action) => {
-        state.loading = false;
-        state.posts = action.payload;
-      })
+    .addCase(fetchPosts.fulfilled, (state, action) => {
+  state.loading = false;
+  state.posts = [...state.posts, ...action.payload.posts];
+  state.hasMore = action.payload.hasMore;
+  state.nextPage = action.payload.page + 1;
+  state.totalCount = action.payload.totalCount;
+})
 
       .addCase(fetchPosts.rejected, (state, action) => {
         state.loading = false;
