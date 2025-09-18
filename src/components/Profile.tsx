@@ -60,29 +60,29 @@ export const Profile: React.FC = () => {
     } catch (error) {
       toast.error('Failed to update profile: ' + (error as string));
     }
+
+    console.log("FormData avatar_url:", formData.avatar_url);
+
   };
 
-  const handleAvatarUpload = async (file: File) => {
-    if (!user) return;
-    
-    try {
-      const compressedFile = await ImageUploadService.compressImage(file, 800, 0.7);
-      const newAvatarUrl = await uploadAvatar(compressedFile, user.supabase_uid);
+ const handleAvatarUpload = async (file: File) => {
+  if (!user) return;
 
-      if (newAvatarUrl) {
-        setFormData(prev => ({ ...prev, avatar_url: newAvatarUrl }));
-
-        await dispatch(updateProfile({ avatar_url: newAvatarUrl })).unwrap();
-
-        toast.success('Avatar updated successfully!');
-      }
-
-    } catch (error: any) {
-      toast.error('Avatar upload failed: ' + error.message);
-    } finally {
-      setUploadingAvatar(false);
+  try {
+    setUploadingAvatar(true);
+    const compressedFile = await ImageUploadService.compressImage(file, 800, 0.7);
+    const newAvatarUrl = await uploadAvatar(compressedFile, user.id); 
+    if (newAvatarUrl) {
+      setFormData(prev => ({ ...prev, avatar_url: newAvatarUrl }));
+      await dispatch(updateProfile({ avatar_url: newAvatarUrl })).unwrap();
+      toast.success('Avatar updated successfully!');
     }
-  };
+  } catch (error: any) {
+    toast.error('Avatar upload failed: ' + error.message);
+  } finally {
+    setUploadingAvatar(false);
+  }
+};
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

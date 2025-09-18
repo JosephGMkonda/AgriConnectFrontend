@@ -48,12 +48,29 @@ export const createPost = createAsyncThunk(
         content: string;
         post_type: string;
         tags?: string[];
-        image_url?: string;
-        video_url?: string;
+        mediaFiles?: File[];
 
     }, {rejectWithValue}) => {
 
         try {
+      const formData = new FormData();
+      formData.append('title', postData.title);
+      formData.append('content', postData.content);
+      formData.append('post_type', postData.post_type);
+      if (postData.tags) {
+        postData.tags.forEach(tag => {
+          formData.append('tags_ids', tag);
+        });
+      }
+
+      if (postData.mediaFiles) {
+        postData.mediaFiles.forEach(file => {
+          formData.append('media_uploads', file);
+        });
+      }
+      
+
+
             const response = await api.post('/posts/', postData,{
                 headers:{
                     'Content-Type': 'multipart/form-data'
@@ -77,6 +94,7 @@ export const fetchPosts = createAsyncThunk(
       const response = await api.get('/posts/', {
         params: { page, limit, ordering: '-created_at' }
       });
+      console.log(response)
       return {
         posts: response.data.results,
         totalCount: response.data.count,
@@ -173,14 +191,31 @@ const postSlice = createSlice({
         state.error = null;
       })
 
-    .addCase(fetchPosts.fulfilled, (state, action) => {
+ .addCase(fetchPosts.fulfilled, (state, action) => {
   state.loading = false;
-  state.posts = [...state.posts, ...action.payload.posts];
+  
+
+  const existingPostsMap = new Map();
+  state.posts.forEach(post => existingPostsMap.set(post.id, post));
+  
+  
+  action.payload.posts.forEach(newPost => {
+    if (existingPostsMap.has(newPost.id)) {
+      
+      const index = state.posts.findIndex(p => p.id === newPost.id);
+      if (index !== -1) {
+        state.posts[index] = newPost; 
+      }
+    } else {
+      
+      state.posts.push(newPost);
+    }
+  });
+  
   state.hasMore = action.payload.hasMore;
   state.nextPage = action.payload.page + 1;
   state.totalCount = action.payload.totalCount;
 })
-
       .addCase(fetchPosts.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

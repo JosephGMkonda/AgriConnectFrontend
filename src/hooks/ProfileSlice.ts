@@ -35,6 +35,7 @@ export const updateProfile = createAsyncThunk(
     async (profileData: Partial<Profile>, { rejectWithValue }) => {
         try {
             const response = await api.put('/userprofile/profile/update/', profileData);
+            console.log("Here is the response", response)
             return response.data;
         } catch (error) {
             return rejectWithValue(error.response.data);

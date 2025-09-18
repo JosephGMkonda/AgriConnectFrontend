@@ -98,9 +98,9 @@ export const Feed: React.FC = () => {
 
       
       <div className="space-y-4">
-        {posts.map((post) => (
+        {posts.map((post, index) => (
           <PostCard
-            key={post.id}
+            key={`${post.id}-${index}`}
             post={post}
             onFollow={handleFollow}
             onLike={handleLike}

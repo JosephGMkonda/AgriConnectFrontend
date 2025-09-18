@@ -18,50 +18,82 @@ export class ImageUploadService{
 
 
     static async uploadImage(file: File, userId: string, options?: uploadOptions): Promise<string> {
-        const config = { ...this.defaultOptions, ...options};
+  const config = { ...this.defaultOptions, ...options };
 
-        this.validateFile(file, config);
+  this.validateFile(file, config);
 
-        try {
-            const fileExt = file.name.split('.').pop();
-            const timestamp = new Date().getTime();
-            const fileName = `${config.folder}/image-${userId}-${timestamp}.${fileExt}`;
-            const filePath = `${fileName}`;
+  try {
+    const fileExt = file.name.split('.').pop();
+    const timestamp = new Date().getTime();
+    const filePath = `${config.folder}/image-${userId}-${timestamp}.${fileExt}`;
 
-            const {data, error: uploadError} = await supabase.storage
-                .from(config.bucket!)
-                .upload(filePath, file, {
-                    cacheControl: '3600',
-                    upsert: true,
-                    contentType: file.type,
-                })
+    const { data, error: uploadError } = await supabase.storage
+      .from(config.bucket!)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+        contentType: file.type,
+      });
 
-                if(uploadError){
-                    throw new Error(`Upload failed: ${uploadError.message}`);
-                }
-
-                const {data: {publicUrl}} = supabase.storage
-                    .from(config.bucket!)
-                    .getPublicUrl(filePath);
-                return publicUrl;
+    if (uploadError) {
+      throw new Error(`Upload failed: ${uploadError.message}`);
+    }
 
 
+    const { data: publicData, error: publicError } = supabase.storage
+      .from(config.bucket!)
+      .getPublicUrl(filePath);
 
-        } catch (error) {
-            console.error('Error uploading image:', error);
-            throw new Error(error.message || 'Image upload failed');
+    if (publicError) {
+      throw new Error(`Failed to get public URL: ${publicError.message}`);
+    }
 
+    return publicData.publicUrl;
+  } catch (error: any) {
+    console.error('Error uploading image:', error);
+    throw new Error(error.message || 'Image upload failed');
+  }
+}
+
+
+   static async uploadImage(file: File, userId: string, options?: uploadOptions): Promise<string> {
+    const config = { ...this.defaultOptions, ...options };
+    this.validateFile(file, config);
+
+    try {
+        const fileExt = file.name.split('.').pop();
+        const timestamp = new Date().getTime();
+        const filePath = `${config.folder}/image-${userId}-${timestamp}.${fileExt}`;
+
+        
+
+        const { data, error: uploadError } = await supabase.storage
+            .from(config.bucket!)
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType: file.type,
+            });
+
+        if (uploadError) {
+            throw new Error(`Upload failed: ${uploadError.message}`);
         }
-    }
 
-    static async uploadAvatar(file: File, userId: string, ): Promise<string> {
-        return this.uploadImage(file, userId, {
-            bucket: 'user-avatars',
-            folder: 'avatars',
-            maxSizeMB: 5,
-            allowedAndTypes: ['image/jpeg', 'image/png', 'image/webp'],
-        })
+        const { data: publicData, error: publicError } = supabase.storage
+            .from(config.bucket!)
+            .getPublicUrl(filePath);
+
+        if (publicError) {
+            throw new Error(`Failed to get public URL: ${publicError.message}`);
+        }
+
+        return publicData.publicUrl;
+
+    } catch (error: any) {
+        console.error('Error uploading image:', error);
+        throw new Error(error.message || 'Image upload failed');
     }
+}
 
     static async uploadPostImage(file: File, userId: string, postId: string): Promise<string> {
         return this.uploadImage(file, userId, {

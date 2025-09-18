@@ -1,11 +1,14 @@
 import React, { useState, useRef } from 'react';
 import EmojiPicker from 'emoji-picker-react';
-import { useAppDispatch } from '../store/hook';
+import { useAppDispatch, useAppSelector } from '../store/hook';
 import { createPost } from '../hooks/creatingPost';
 import { toast } from 'react-toastify';
 import { FaCamera, FaVideo } from 'react-icons/fa';
 import { IoPricetagsOutline } from 'react-icons/io5';
 import { BsEmojiGrin } from 'react-icons/bs';
+import { SupabaseStorageService, type UploadResult } from '../service/SupabaseStorageService';
+import { MediaPreview } from '../re-components/MediaPreview';
+
 
 interface CreatePostProps {
   onClose: () => void;
@@ -23,7 +26,25 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onClose, onPostCreated, 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [selectedFiles, isSelectedFiles] = useState<File[]>([]);
+  const [upLoadingResults, setIsUpLoadingResults] = useState<UploadResult[]>([]);
+  const [isUploading, setIsUpLoading] = useState(false);
 
+  const currentUser = useAppSelector((state: RootState) => state.auth.user);
+
+
+    const handleFilesSelect = (files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files);
+    isSelectedFiles(prev => [...prev, ...newFiles]);
+  };
+
+  const handleRemoveFile = (index: number) => {
+    isSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setIsUpLoadingResults(prev => prev.filter((_, i) => i !== index));
+  };
+
+ 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   if (!isOpen) return null;
@@ -41,43 +62,70 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onClose, onPostCreated, 
     'Irrigation', 'Harvest', 'Sustainable', 'Compost', 'Greenhouse'
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+
+   
+
+
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!title.trim() || !content.trim()) {
+    toast.error('Please add a title and content');
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
     
-    if (!content.trim() || !title.trim()) {
-      toast.error('Please add a title and content to your post');
-      return;
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    formData.append('post_type', postType);
+    
+    
+    selectedTags.forEach(tag => {
+      formData.append('tags_ids', tag);
+    });
+
+    
+    selectedFiles.forEach((file, index) => {
+      formData.append('media_uploads', file); 
+    });
+
+    
+    console.log('FormData contents:');
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
     }
 
-    setIsSubmitting(true);
+    
+    await dispatch(createPost({
+      title,
+      content,
+      post_type: postType,
+      tags: selectedTags,
+      mediaFiles: selectedFiles 
+    })).unwrap();
 
-    try {
-      // Prepare FormData for file + text
-      const formData = new FormData();
-      formData.append('title', title);
-      formData.append('content', content);
-      formData.append('post_type', postType);
-      selectedTags.forEach(tag => formData.append('tags', tag));
-      if (selectedMedia) {
-        formData.append('media', selectedMedia);
-      }
+    toast.success('Post created successfully!');
+    
+    setTitle('');
+    setContent('');
+    isSelectedFiles([]);
+    setSelectedTags([]);
+    onClose();
+    onPostCreated?.();
+    
+  } catch (error: any) {
+    console.error('Create post error:', error);
+    toast.error(error.message || 'Failed to create post');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
-      await dispatch(createPost(formData)).unwrap();
-
-      toast.success('Post created successfully!');
-      setContent('');
-      setTitle('');
-      setSelectedTags([]);
-      setSelectedMedia(null);
-      setMediaPreview(null);
-      onPostCreated?.();
-      onClose();
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create post');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     const emoji = emojiData.emoji;
@@ -188,19 +236,14 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onClose, onPostCreated, 
             </div>
 
             {/* Media Preview */}
-            {mediaPreview && (
-              <div className="mt-4">
-                {selectedMedia?.type.startsWith("image/") ? (
-                  <img src={mediaPreview} alt="Preview" className="rounded-lg max-h-60 object-contain" />
-                ) : (
-                  <video controls className="rounded-lg max-h-60">
-                    <source src={mediaPreview} type={selectedMedia?.type} />
-                    Your browser does not support the video tag.
-                  </video>
-                )}
-              </div>
+           {selectedFiles.length > 0 && (
+              <MediaPreview
+                files={selectedFiles}
+                uploadResults={upLoadingResults}
+                onRemove={handleRemoveFile}
+                isUploading={isUploading}
+              />
             )}
-
             {/* Tags */}
             <div className="flex flex-wrap gap-2 py-2">
               {selectedTags.map((tag) => (
@@ -221,27 +264,21 @@ export const CreatePost: React.FC<CreatePostProps> = ({ onClose, onPostCreated, 
             
             <div className="flex items-center space-x-4">
               {/* Image Upload */}
-              <button
-                type="button"
-                className="text-blue-500 hover:text-blue-700 transition-colors"
-                onClick={() => document.getElementById("imageInput")?.click()}
-              >
-                <FaCamera />
-
-              </button>
+             <button
+              type="button"
+              className="text-blue-500 hover:text-blue-700 transition-colors"
+              onClick={() => document.getElementById("mediaInput")?.click()}
+            >
+              <FaCamera /> / <FaVideo />
+            </button>
               <input
-                type="file"
-                accept="image/*"
-                id="imageInput"
-                style={{ display: "none" }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setSelectedMedia(file);
-                    setMediaPreview(URL.createObjectURL(file));
-                  }
-                }}
-              />
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              style={{ display: 'none' }}
+              id="mediaInput"
+              onChange={(e) => handleFilesSelect(e.target.files)}
+            />
 
               {/* Video Upload */}
               <button
