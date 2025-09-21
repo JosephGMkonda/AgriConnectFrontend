@@ -21,9 +21,9 @@ export const followUser = createAsyncThunk(
   'follow/followUser',
   async (userId: number, { rejectWithValue }) => {
     try {
-      // ✅ must send { following: userId }
+    
       const response = await api.post('/Follow/', { following: userId });
-      return response.data; // includes id, follower, following
+      return response.data; 
     } catch (error: any) {
       return rejectWithValue(error.response?.data || error.message);
     }
