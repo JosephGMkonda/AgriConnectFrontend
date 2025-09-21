@@ -2,11 +2,14 @@ import React, { useState } from 'react';
 import type { RegisterData } from '../types/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthService } from '../service/auth';
+import { useAppDispatch } from '../store/hook';
+import { register} from '../hooks/AuthSlice';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 
 export const RegisterForm: React.FC = () => {
+  const dispatch = useAppDispatch();
   const [formData, setFormData] = useState<RegisterData>({
     username: '',
     email: '',
@@ -29,11 +32,13 @@ export const RegisterForm: React.FC = () => {
     }
 
     try {
-      await AuthService.register({
-        username: formData.username,
-        email: formData.email,
-        password: formData.password,
-      });
+        await dispatch(
+        register({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        })
+      ).unwrap();
 
       toast.success('Registration successful! Redirecting to login...', {
         position: "top-right",

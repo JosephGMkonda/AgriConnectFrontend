@@ -16,7 +16,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({ onNewPost }) => {
     { path: '/notifications', icon: '🔔', label: 'Notifications' },
     { path: '/messages', icon: '✉️', label: 'Messages' },
     
-    { path: '/profile', icon: '👤', label: 'Profile' },
+    { path: '/user-profile', icon: '👤', label: 'Profile' },
   ];
 
  

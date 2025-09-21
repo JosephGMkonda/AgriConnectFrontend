@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hook"
 import { fetchPosts } from "../hooks/creatingPost"
 import { PostCard } from "../re-components/PostCard"

@@ -1,6 +1,6 @@
 import React from "react";
 import { useState,useRef, useEffect, useMemo } from "react";
-import {  useAppSelector } from "../store/hook";
+import {  useAppDispatch, useAppSelector } from "../store/hook";
 import { FaCommentDots, FaLongArrowAltLeft, FaLongArrowAltRight, FaQuestion } from "react-icons/fa";
 import { AiFillBulb } from "react-icons/ai";
 import { IoNewspaperOutline, IoPlay } from "react-icons/io5";
@@ -12,6 +12,7 @@ import userDefault from '../assets/userDefault.png';
 import { IoIosPause } from "react-icons/io";
 import { PiFilmSlateDuotone } from "react-icons/pi";
 import { CommentsSection } from "./CommentSection";
+import { followUser, unfollowUser } from "../hooks/followSlice";
 
 
 
@@ -65,14 +66,50 @@ export const PostCard: React.FC<PostCardProps> = ({
   onComment, 
   onShare 
 }) => {
-  const [isFollowing, setIsFollowing] = useState(false);
+  
   const [isLiked, setIsLiked] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const currentUser = useAppSelector(state => state.auth.user);
+  const { following } = useAppSelector((state) => state.follow);
   const [showComments, setShowComments] = useState(false)
+  
+  const [isLocalLoading, setIsLocalLoading] = useState(false);
+  const dispatch = useAppDispatch();
+
+  const authorId = post.author?.id;
+  const authorUsername = post.author?.username || post.author?.email || 'Unknown User';
+  const authorAvatar = post.author?.avatar_url || userDefault;
+  const isAuthorVerified = post.author?.is_verified || false;
+
+  const isOwnPost = currentUser?.id && authorId ? currentUser.id === authorId : false;
+  const shouldShowFollowButton = currentUser && authorId && !isOwnPost;
+
+  const followEntry = following.find(f => f.userId === authorId);
+  const isFollowing = !!followEntry;
+
+   
+
+ const handleFollow = async () => {
+  if (!authorId) return;
+  setIsLocalLoading(true);
+
+  try {
+    if (isFollowing) {
+      await dispatch(unfollowUser(followEntry!.followId)).unwrap();
+    } else {
+      await dispatch(followUser(authorId)).unwrap();
+    }
+  } catch (error) {
+    console.error('Follow/unfollow failed:', error);
+  } finally {
+    setIsLocalLoading(false);
+  }
+};
+
+
 
 
 
@@ -97,17 +134,16 @@ const media = React.useMemo(() => {
 },[post.image_url, post.video_url, post.media])
 
 
+  
 
-  const isOwnPost = currentUser?.id === post.author.id;
+
+   
+
   const shouldTruncate = post.content.length > 150 && !isExpanded;
   const displayContent = shouldTruncate 
     ? post.content.substring(0, 150) + '...' 
     : post.content;
 
-  const handleFollow = () => {
-    setIsFollowing(!isFollowing);
-    onFollow?.(post.author.id);
-  };
 
   const handleLike = () => {
     setIsLiked(!isLiked);
@@ -160,6 +196,11 @@ const prevImage = () => {
     setShowComments(true);
   };
 
+
+  
+
+
+
   
 
   return (
@@ -168,31 +209,22 @@ const prevImage = () => {
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-3 flex-1 min-w-0">
           <img
-            src={post.author.avatar_url || userDefault}
-            alt={post.author}
+            src={authorAvatar}
+            alt={authorUsername}
             className="w-12 h-12 rounded-full object-cover border-2 border-green-100 flex-shrink-0"
           />
           
           <div className="min-w-0 flex-1">
             <div className="flex items-center space-x-2">
               <h3 className="font-semibold text-gray-900 truncate">
-                {post.author}
+                {authorUsername}
               </h3>
-              {post.author.is_verified && (
-                <span className="text-blue-500" title="Verified Farmer">✅</span>
-              )}
+              
             </div>
             
             <div className="flex items-center space-x-3 text-sm text-gray-500">
               <span>{formatDate(post.created_at)}</span>
-              {post.author.farm_type && (
-                <>
-                  <span>•</span>
-                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs">
-                    {post.author.farm_type}
-                  </span>
-                </>
-              )}
+             
               {post.post_type && (
                 <span className="flex items-center space-x-1">
                   <span>{getPostTypeIcon(post.post_type)}</span>
@@ -202,20 +234,20 @@ const prevImage = () => {
             </div>
           </div>
         </div>
-
-        
-        {!isOwnPost && (
+       {shouldShowFollowButton && (
           <button
             onClick={handleFollow}
-            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors flex-shrink-0 ${
+            disabled={isLocalLoading}
+            className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors flex-shrink-0 min-w-[100px] ${
               isFollowing
-                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                ? 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
                 : 'bg-green-600 text-white hover:bg-green-700'
-            }`}
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            {isFollowing ? 'Following' : 'Follow'}
+            {isLocalLoading ? '...' : isFollowing ? 'Following' : 'Follow'}
           </button>
         )}
+      
       </div>
 
       

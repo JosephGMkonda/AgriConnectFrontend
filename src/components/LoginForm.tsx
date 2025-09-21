@@ -2,10 +2,16 @@ import React, { useState } from 'react';
 import type { LoginData } from '../types/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
+import { useAppDispatch, useAppSelector } from '../store/hook';
+import { login } from '../hooks/AuthSlice';
+import { fetchProfile } from '../hooks/ProfileSlice';
+
 import 'react-toastify/dist/ReactToastify.css';
-import { AuthService } from '../service/auth';
+
 
 export const LoginForm: React.FC = () => {
+  const dispatch = useAppDispatch<any>();
+
   const [formData, setFormData] = useState<LoginData>({
     email: '',
     password: '',
@@ -19,46 +25,36 @@ export const LoginForm: React.FC = () => {
     setLoading(true);
     setError('');
 
-    try {
-      const result = await AuthService.login(formData);
+   try {
+  await dispatch(login(formData)).unwrap();
+  toast.success("Successfully Login...", { autoClose: 3000 });
 
-       toast.success('successfully Login...', {
-              position: "top-right",
-              autoClose: 3000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-            });
+  const profile = await dispatch(fetchProfile()).unwrap();
 
-           setTimeout(() => {
-        navigate('/profile');
-      }, 2000);
+  if (profile.profile_completed) {
+    navigate("/");
+  } else {
+    navigate("/profile");
+  }
 
-      
-    } catch (err: any) {
+} catch (err: any) {
+  console.error("Login error:", err);
 
-        let errorMessage = err.message || 'Login failed!';
-      
-      
-      if (err.message.includes('Invalid login credentials')) {
-        errorMessage = 'Invalid email or password';
-      } else if (err.message.includes('Email not confirmed')) {
-        errorMessage = 'Please confirm your email before logging in';
-      }
+  const errorMessage = err?.message || err?.error || "Login failed!";
 
-            toast.error(err.message || 'Login failed!', {
-              position: "top-right",
-              autoClose: 5000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-            });
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  if (errorMessage.includes("Invalid login credentials")) {
+    toast.error("Invalid email or password");
+  } else if (errorMessage.includes("Email not confirmed")) {
+    toast.error("Please confirm your email before logging in");
+  } else {
+    toast.error(errorMessage);
+  }
+
+  setError(errorMessage);
+} finally {
+  setLoading(false);
+}
+
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

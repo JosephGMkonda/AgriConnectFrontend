@@ -86,7 +86,7 @@ export const createPost = createAsyncThunk(
     }
 )
 
-// fetching all post
+
 export const fetchPosts = createAsyncThunk(
   'posts/fetchPosts',
   async ({ page = 1, limit = 10 }: { page?: number; limit?: number } = {}, { rejectWithValue }) => {
@@ -108,7 +108,7 @@ export const fetchPosts = createAsyncThunk(
 );
 
 
-// updating post
+
 export const updatePost = createAsyncThunk(
     'posts/updatePost',
     async (

@@ -280,27 +280,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               onChange={(e) => handleFilesSelect(e.target.files)}
             />
 
-              {/* Video Upload */}
-              <button
-                type="button"
-                className="text-blue-500 hover:text-blue-700 transition-colors"
-                onClick={() => document.getElementById("videoInput")?.click()}
-              >
-                <FaVideo />
-              </button>
-              <input
-                type="file"
-                accept="video/*"
-                id="videoInput"
-                style={{ display: "none" }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setSelectedMedia(file);
-                    setMediaPreview(URL.createObjectURL(file));
-                  }
-                }}
-              />
+            
 
               {/* Emoji Picker */}
               <div className="relative">

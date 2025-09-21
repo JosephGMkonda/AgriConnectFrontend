@@ -1,16 +1,47 @@
-
-import React from 'react';
+import { ReactNode , useState} from "react";
+import { TopNavigation } from "../re-components/TopNavigation"
+import { LeftSidebar } from "../re-components/LeftSidebar";
+import { RightSidebar } from "../re-components/RightSideBar";
 import { CreatePost } from './CreatePost';
-import { PostFeed } from './PostFeed';
 
-export const MainContent: React.FC = () => {
+interface MainLayoutProps {
+  children: ReactNode;
+}
+
+const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
+  const [showCreatePost, setShowCreatePost] = useState(false);
   return (
-    <main className="flex-grow max-w-2xl mx-auto p-4 md:ml-64 lg:mr-80"> {/* Adjust margins for sidebars */}
-    
-      <CreatePost />
+    <div className="flex flex-col h-screen">
       
+      <TopNavigation />
+
+      <div className="flex flex-1 overflow-hidden">
+        
+        <div className="w-1/5 bg-gray-100 border-r overflow-y-auto">
+          <LeftSidebar onNewPost={() => setShowCreatePost(true)}/>
+        </div>
+
+        
+        <div className="flex-1 overflow-y-auto p-4">
+          {children}
+        </div>
+
       
-      <PostFeed />
-    </main>
+        <div className="w-1/5 bg-gray-50 border-l overflow-y-auto">
+          <RightSidebar  onNewPost={() => setShowCreatePost(true)} />
+        </div>
+      </div>
+
+       <CreatePost 
+              isOpen={showCreatePost}
+              onClose={() => setShowCreatePost(false)}
+              onPostCreated={() => {
+                
+                setShowCreatePost(false);
+              }}
+            />
+    </div>
   );
 };
+
+export default MainLayout;
