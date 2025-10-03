@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ImageUploadService } from "../service/imageUpload";
-import { clearError } from "./AuthSlice";
+
 
 export const useImageUpload = () => {
 

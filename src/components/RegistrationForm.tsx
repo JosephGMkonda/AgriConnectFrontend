@@ -3,7 +3,7 @@ import type { RegisterData } from '../types/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthService } from '../service/auth';
 import { useAppDispatch } from '../store/hook';
-import { register} from '../hooks/AuthSlice';
+import { register} from '../Slices/AuthSlice';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 

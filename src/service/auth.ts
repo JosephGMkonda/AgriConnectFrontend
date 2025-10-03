@@ -13,8 +13,7 @@ export class AuthService {
         })
 
 
-        console.log("Auth Data:", authData)
-        console.log("Auth Error:", authError)
+        
         if(authError){
             throw new Error(authError.message)
         }
@@ -29,7 +28,7 @@ export class AuthService {
             email: userData.email
         })
 
-        console.log("Django User Data:", djangoUser)
+        
         
 
         if(djangoUser.error) {

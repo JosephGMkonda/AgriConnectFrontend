@@ -22,7 +22,8 @@ export const fetchProfile = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             const response = await api.get('/userprofile/profile/');
-            console.log("The profile thing", response)
+            console.log( "response from profile",response)
+            
             return response.data.profile;
             
         } catch (error) {
@@ -32,17 +33,29 @@ export const fetchProfile = createAsyncThunk(
 );
 
 export const updateProfile = createAsyncThunk(
-    'profile/updateProfile',
-    async (profileData: Partial<Profile>, { rejectWithValue }) => {
-        try {
-            const response = await api.put('/userprofile/profile/update/', profileData);
-            console.log("Here is the response", response)
-            return response.data;
-        } catch (error) {
-            return rejectWithValue(error.response.data);
-        }
+  'profile/updateProfile',
+  async (profileData: Partial<Profile> | FormData, { rejectWithValue }) => {
+    try {
+      let response;
+
+      if (profileData instanceof FormData) {
+        response = await api.put('/userprofile/profile/update/', profileData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+
+
+      } else {
+        response = await api.put('/userprofile/profile/update/', profileData);
+      }
+
+      return response.data;
+      
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data || 'Failed to update profile');
     }
+  }
 );
+
 
 const profileSlice = createSlice({
     name: 'profile',

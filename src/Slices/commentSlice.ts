@@ -111,6 +111,11 @@ const commentSlice = createSlice({
       // Create comment
       .addCase(createComment.fulfilled, (state, action) => {
         state.comments.unshift(action.payload);
+        const post = state.posts?.list?.find((p: any) => p.id === postId);
+
+         if (post) {
+        post.comments_count += 1; 
+      }
       })
       // Delete comment
       .addCase(deleteComment.fulfilled, (state, action) => {

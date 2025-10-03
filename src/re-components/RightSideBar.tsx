@@ -1,5 +1,9 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from "react";
+import { useAppDispatch, useAppSelector }  from "../store/hook"
+import {
+  fetchSuggestedUsers,
+  followUser,
+}  from "../Slices/SuggestedFollow"
 
 interface User {
   id: number;
@@ -11,16 +15,22 @@ interface User {
 }
 
 export const RightSidebar: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(5); 
+
+  const dispatch = useAppDispatch();
+  const { users, loading, error } = useAppSelector((s) => s.suggested);
+
+  
+    useEffect(() => {
+    dispatch(fetchSuggestedUsers());
+  }, [dispatch]);
+
+  const handleFollow = (userId: number) => {
+    dispatch(followUser(userId));
+  };
 
 
-  const suggestedUsers: User[] = [
-    { id: 1, username: 'FarmExpert', avatarUrl: '', farmType: 'Crop Specialist', isOnline: true },
-    { id: 2, username: 'DairyMaster', avatarUrl: '', farmType: 'Dairy Farming', isOnline: true },
-    { id: 3, username: 'OrganicGrower', avatarUrl: '', farmType: 'Organic Farming', isOnline: false, lastSeen: '2h ago' },
-    { id: 4, username: 'PoultryPro', avatarUrl: '', farmType: 'Poultry Expert', isOnline: true },
-    { id: 5, username: 'IrrigationTech', avatarUrl: '', farmType: 'Water Management', isOnline: false, lastSeen: '5h ago' },
-  ];
 
   const trendingTopics = [
     { tag: '#OrganicFarming', posts: '1.2K' },
@@ -43,13 +53,11 @@ export const RightSidebar: React.FC = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-green-300 rounded-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
-            <div className="absolute left-3 top-3">
-              <span className="text-green-400">🔍</span>
-            </div>
+            <div className="absolute left-3 top-3">🔍</div>
           </div>
         </div>
 
-         {/* showing people who are online */}
+         {/* showing people who are online
         <div className="bg-green-50 rounded-xl p-4 ">
           <h3 className="font-semibold text-gray-800 mb-4">Online Now</h3>
           <div className="flex items-center space-x-2">
@@ -70,43 +78,55 @@ export const RightSidebar: React.FC = () => {
               +{suggestedUsers.filter(u => u.isOnline).length - 5} more online
             </span>
           </div>
-        </div>
+        </div> */}
 
 
         {/* Suggestion poeple might follow based on tags/location as well profile*/}
         <div className="bg-green-50 rounded-xl p-4 mt-4 mb-6">
           <h3 className="font-semibold text-gray-800 mb-4">Farmers to Follow</h3>
+
+          {loading && <p>Loading...</p>}
+          {error && <p className="text-red-500">{error}</p>}
+
           <div className="space-y-3">
-            {suggestedUsers.map((user) => (
+            {users.slice(0, visibleCount).map((user) => (
               <div key={user.id} className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="relative">
-                    <img
-                      src={user.avatarUrl || '/default-avatar.png'}
-                      alt={user.username}
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    {user.isOnline && (
-                      <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-                    )}
-                  </div>
+                  <img
+                    src={user.avatar_url || "/default-avatar.png"}
+                    alt={user.username}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
                   <div>
                     <div className="font-semibold text-sm">{user.username}</div>
-                    <div className="text-xs text-gray-500">{user.farmType}</div>
-                    {!user.isOnline && user.lastSeen && (
-                      <div className="text-xs text-gray-400">Last seen {user.lastSeen}</div>
-                    )}
+                    <div className="text-xs text-gray-500">
+                      {user.farm_type || "Farmer"}
+                    </div>
                   </div>
                 </div>
-                <button className="bg-green-600 text-white px-3 py-1 rounded-full text-xs hover:bg-green-700 transition-colors">
-                  Follow
+                <button
+                  onClick={() => handleFollow(user.id)}
+                  disabled={user.is_following}
+                  className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                    user.is_following
+                      ? "bg-gray-300 text-gray-700 cursor-not-allowed"
+                      : "bg-green-600 text-white hover:bg-green-700"
+                  }`}
+                >
+                  {user.is_following ? "Following" : "Follow"}
                 </button>
               </div>
             ))}
           </div>
-          <button className="text-green-600 text-sm font-semibold mt-3 hover:text-green-700">
-            Show more
-          </button>
+
+          {visibleCount < users.length && (
+            <button
+              onClick={() => setVisibleCount((c) => c + 5)}
+              className="text-green-600 text-sm font-semibold mt-3 hover:text-green-700"
+            >
+              Show more
+            </button>
+          )}
         </div>
 
         {/* Trending agricuture topics */}

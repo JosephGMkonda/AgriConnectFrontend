@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams,useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hook';
 import { api } from '../service/api';
 import { PostCard } from '../re-components/PostCard';
@@ -40,7 +40,7 @@ interface ProfileData {
   following_count: number;
 }
 
-// Post type configuration
+// Post types
 const POST_TYPES = [
   { value: 'all', label: 'All Posts', icon: FaFileAlt, color: 'text-gray-600' },
   { value: 'question', label: 'Questions', icon: FaQuestion, color: 'text-blue-600' },
@@ -59,7 +59,7 @@ export const UserProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'posts' | 'about'>('posts');
-  
+  const navigate = useNavigate()
   
   const selectedPostType = searchParams.get('type') || 'all';
 
@@ -81,6 +81,7 @@ export const UserProfile: React.FC = () => {
       }
       
       const response = await api.get(endpoint, { params });
+      console.log("The profile response", response)
       setProfileData(response.data);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load profile');
@@ -98,6 +99,11 @@ export const UserProfile: React.FC = () => {
     }
     setSearchParams(searchParams);
   };
+
+const handleEdit = () => {
+  navigate('/profile'); 
+};
+
 
 
   if (loading) {
@@ -172,11 +178,7 @@ export const UserProfile: React.FC = () => {
                   alt={profile.username}
                   className="w-32 h-32 rounded-full border-4 border-white shadow-lg"
                 />
-                {isOwnProfile && (
-                  <button className="absolute bottom-2 right-2 bg-white p-2 rounded-full shadow-md hover:bg-gray-100">
-                    <FaCamera className="text-gray-600" />
-                  </button>
-                )}
+               
               </div>
 
               
@@ -190,13 +192,13 @@ export const UserProfile: React.FC = () => {
                   </div>
                   
                   {isOwnProfile ? (
-                    <Link
-                      to="/settings/profile"
+                    <button
+                      onClick={handleEdit}
                       className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
                     >
                       <FaEdit size={14} />
                       <span>Edit Profile</span>
-                    </Link>
+                    </button>
                   ) : (
                     <div className="flex space-x-3">
                       <button className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700">
@@ -317,11 +319,62 @@ export const UserProfile: React.FC = () => {
                           } ({posts.length})
                         </h3>
                       </div>
-                      <div className="space-y-4">
-                        {posts.map((post) => (
-                          <PostCard key={post.id} post={post} />
-                        ))}
-                      </div>
+                     <div className="space-y-4">
+  {posts.length === 0 ? (
+    <div className="text-center py-12 text-gray-500">
+      <div className="flex justify-center mb-4">
+        {selectedPostType === 'all' ? (
+          <FaFileAlt className="text-4xl" />
+        ) : (
+          POST_TYPES
+            .find(t => t.value === selectedPostType)
+            ?.icon({ className: "text-4xl" })
+        )}
+      </div>
+      <p className="text-lg font-medium mb-2">
+        No {selectedPostType === 'all' ? '' : selectedPostType + ' '}posts yet
+      </p>
+      {isOwnProfile && (
+        <p className="text-sm">Start sharing your {selectedPostType !== 'all' ? selectedPostType : 'farming'} experiences!</p>
+      )}
+    </div>
+  ) : (
+    <div>
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">
+          {selectedPostType === 'all' 
+            ? 'All Posts' 
+            : POST_TYPES.find(t => t.value === selectedPostType)?.label
+          } ({posts.length})
+        </h3>
+      </div>
+      
+      <div className="space-y-4">
+        {posts.map((post) => {
+          
+          const transformedPost = {
+            ...post,
+          
+            media: (post.media_files || []).map((mediaItem: any) => ({
+              type: mediaItem.media_type,
+              url: mediaItem.file_url,
+              thumbnail: mediaItem.thumbnail_url,
+              alt: mediaItem.alt_text || ''
+            })),
+
+             tags: (post.tags || []).map((tag: any) => 
+      typeof tag === 'object' ? tag.name : tag
+    )
+          };
+          
+        
+          
+          return <PostCard key={post.id} post={transformedPost} />;
+        })}
+      </div>
+    </div>
+  )}
+</div>
                     </div>
                   )}
                 </div>

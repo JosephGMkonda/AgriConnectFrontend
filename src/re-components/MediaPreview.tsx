@@ -59,7 +59,7 @@ export const MediaPreview: React.FC<MediaPreviewProps> = ({
               ×
             </button>
 
-            {/* File Info */}
+            
             <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-1 rounded-b-lg">
               <div className="truncate">{file.name}</div>
               <div className="text-xs opacity-75">

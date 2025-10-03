@@ -5,11 +5,12 @@ import ProfilePage from './pages/ProfilePage';
 import HomePage from './pages/HomePage';
 import UserProfilePage from './pages/Userprofilepage';
 import FindFriendspage from './pages/FindFriendspage';
+import NotificationPage from './pages/NoficationPage';
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from './components/ProtectedRoute';
 import MainLayout from './components/MainContent'
 import { useAppDispatch, useAppSelector } from './store/hook';
-import { fetchUser } from './hooks/AuthSlice';
+import { fetchUser } from './Slices/AuthSlice';
 
 function App() {
 
@@ -57,6 +58,14 @@ function App() {
         <ProtectedRoute>
           <MainLayout>
             <FindFriendspage />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+
+         <Route path="/notifications" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <NotificationPage />
           </MainLayout>
         </ProtectedRoute>
       } />

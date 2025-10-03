@@ -1,76 +1,90 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import { useAppDispatch, useAppSelector } from '../store/hook';
-import { createPost } from '../Slices/creatingPost';
+import { updatePost } from '../Slices/creatingPost'
 import { toast } from 'react-toastify';
-import { FaCamera, FaQuestion, FaVideo } from 'react-icons/fa';
-import { IoNewspaperOutline, IoPricetagsOutline } from 'react-icons/io5';
+import { FaCamera, FaVideo } from 'react-icons/fa';
+import { IoPricetagsOutline } from 'react-icons/io5';
 import { BsEmojiGrin } from 'react-icons/bs';
-import { SupabaseStorageService, type UploadResult } from '../service/SupabaseStorageService';
 import { MediaPreview } from '../re-components/MediaPreview';
-import { GrArticle } from 'react-icons/gr';
-import { AiFillBulb } from 'react-icons/ai';
-import { GiRootTip } from 'react-icons/gi';
 
-
-interface CreatePostProps {
+interface EditPostProps {
   onClose: () => void;
-  onPostCreated?: () => void;
+  onPostUpdated?: () => void;
   isOpen: boolean;
+  post: Post; 
 }
 
-export const CreatePost: React.FC<CreatePostProps> = ({ onClose, onPostCreated, isOpen }) => {
+export const EditPost: React.FC<EditPostProps> = ({ onClose, onPostUpdated, isOpen, post }) => {
   const dispatch = useAppDispatch();
-  const [content, setContent] = useState('');
-  const [title, setTitle] = useState('');
-  const [postType, setPostType] = useState('article');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [content, setContent] = useState(post.content);
+  const [title, setTitle] = useState(post.title);
+  const [postType, setPostType] = useState(post.post_type);
+  const [selectedTags, setSelectedTags] = useState<string[]>(post.tags || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [selectedMedia, setSelectedMedia] = useState<File | null>(null);
-  const [mediaPreview, setMediaPreview] = useState<string | null>(null);
-  const [selectedFiles, isSelectedFiles] = useState<File[]>([]);
-  const [upLoadingResults, setIsUpLoadingResults] = useState<UploadResult[]>([]);
-  const [isUploading, setIsUpLoading] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [existingMedia, setExistingMedia] = useState<Media[]>(post.media || []);
+
 
   const currentUser = useAppSelector((state: RootState) => state.auth.user);
-
-
-    const handleFilesSelect = (files: FileList | null) => {
-    if (!files) return;
-    const newFiles = Array.from(files);
-    isSelectedFiles(prev => [...prev, ...newFiles]);
-  };
-
-  const handleRemoveFile = (index: number) => {
-    isSelectedFiles(prev => prev.filter((_, i) => i !== index));
-    setIsUpLoadingResults(prev => prev.filter((_, i) => i !== index));
-  };
-
- 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  
+  const [mediaToRemove, setMediaToRemove] = useState<number[]>([]);
+
+  // Initialize form with post data
+  useEffect(() => {
+    if (post) {
+      setContent(post.content);
+      setTitle(post.title);
+      setPostType(post.post_type);
+      setSelectedTags(post.tags || []);
+      setExistingMedia(post.media || []);
+    }
+  }, [post]);
 
   if (!isOpen) return null;
 
   const postTypes = [
-    { value: 'article', label: 'Article', icon: <GrArticle /> },
-    { value: 'question', label: 'Question', icon: <FaQuestion /> },
-    { value: 'advice', label: 'Advice', icon: <AiFillBulb />},
-    { value: 'news', label: 'News', icon: <IoNewspaperOutline /> },
-    { value: 'tip', label: 'Farming Tip', icon: <GiRootTip /> }
+    { value: 'article', label: 'Article', icon: '📝' },
+    { value: 'question', label: 'Question', icon: '❓' },
+    { value: 'advice', label: 'Advice', icon: '💡' },
+    { value: 'news', label: 'News', icon: '📰' },
+    { value: 'tip', label: 'Farming Tip', icon: '🌱' }
   ];
 
-
- 
   const popularTags = [
     'Organic Farming', 'Crop Rotation', 'Livestock', 'Poultry', 
     'Irrigation', 'Harvest', 'Sustainable', 'Compost', 'Greenhouse'
   ];
 
+  const handleFilesSelect = (files: FileList | null) => {
+    if (!files) return;
+    const newFiles = Array.from(files);
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+  };
 
-   
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setUploadResults(prev => prev.filter((_, i) => i !== index));
+  };
 
+ const handleRemoveExistingMedia = (index: number) => {
+  const media = existingMedia[index];
+  
+  
+  if (media && media.id) {
+    setExistingMedia(prev => prev.filter((_, i) => i !== index));
+    setMediaToRemove(prev => [...prev, media.id]); 
+  } else {
+    console.warn('Media object missing ID:', media);
 
+    setExistingMedia(prev => prev.filter((_, i) => i !== index));
+  }
+};
 
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
@@ -83,34 +97,35 @@ const handleSubmit = async (e: React.FormEvent) => {
   setIsSubmitting(true);
 
   try {
-const postPayload = {
-  title,
-  content,
-  post_type: postType,
-  tags: selectedTags,
-  mediaFiles: selectedFiles.length > 0 ? selectedFiles : undefined,
-};
+    
+    const allMediaFiles = [...selectedFiles];
+    
+    const updatePayload = {
+      postId: post.id,
+      title,
+      content,
+      post_type: postType,
+      tags: selectedTags,
+      mediaFiles: allMediaFiles, 
+    };
 
+    console.log('🔄 Simple Update - Replacing all media with:', {
+      newFiles: selectedFiles.length,
+      totalFiles: allMediaFiles.length
+    });
 
-await dispatch(createPost(postPayload)).unwrap();
+    await dispatch(updatePost(updatePayload)).unwrap();
 
-    toast.success('Post created successfully!');
-
-    setTitle('');
-    setContent('');
-    isSelectedFiles([]);
-    setSelectedTags([]);
+    toast.success('Post updated successfully!');
     onClose();
-    onPostCreated?.();
+    onPostUpdated?.();
   } catch (error: any) {
-    console.error('Create post error:', error);
-    toast.error(error.message || 'Failed to create post');
+    console.error('❌ Update post error:', error);
+    toast.error(error?.message || 'Failed to update post');
   } finally {
     setIsSubmitting(false);
   }
 };
-
-
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
     const emoji = emojiData.emoji;
@@ -154,7 +169,7 @@ await dispatch(createPost(postPayload)).unwrap();
       
       <div className="relative z-10 bg-white border border-gray-200 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden text-gray-900">
         
-      
+        
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <button
             onClick={onClose}
@@ -162,14 +177,14 @@ await dispatch(createPost(postPayload)).unwrap();
           >
             <span className="text-xl text-gray-600">×</span>
           </button>
-          <h2 className="text-lg font-semibold text-gray-800">Create Post</h2>
+          <h2 className="text-lg font-semibold text-gray-800">Edit Post</h2>
           <button
             type="submit"
             onClick={handleSubmit}
             disabled={isSubmitting || !content.trim() || !title.trim()}
             className="bg-blue-500 text-white px-4 py-1.5 rounded-full text-sm font-semibold hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isSubmitting ? 'Posting...' : 'Post'}
+            {isSubmitting ? 'Updating...' : 'Update'}
           </button>
         </div>
 
@@ -177,7 +192,7 @@ await dispatch(createPost(postPayload)).unwrap();
         <div className="p-4 overflow-y-auto max-h-[calc(90vh-140px)]">
           <form onSubmit={handleSubmit} className="space-y-4">
             
-        
+            
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Post Type
@@ -195,7 +210,7 @@ await dispatch(createPost(postPayload)).unwrap();
               </select>
             </div>
 
-          
+            
             <div>
               <input
                 type="text"
@@ -207,7 +222,7 @@ await dispatch(createPost(postPayload)).unwrap();
               />
             </div>
 
-            
+        
             <div>
               <textarea
                 ref={textareaRef}
@@ -220,15 +235,48 @@ await dispatch(createPost(postPayload)).unwrap();
               />
             </div>
 
-            {/* Media Preview */}
-           {selectedFiles.length > 0 && (
+            {/* Existing Media Preview */}
+            {existingMedia.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-gray-700">Existing Media</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {existingMedia.map((media, index) => (
+                    <div key={index} className="relative group">
+                      {media.type === 'image' ? (
+                        <img
+                          src={media.url}
+                          alt={media.alt || 'Post media'}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                      ) : (
+                        <video
+                          src={media.url}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveExistingMedia(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* New Media Preview */}
+            {selectedFiles.length > 0 && (
               <MediaPreview
                 files={selectedFiles}
-                uploadResults={upLoadingResults}
+                uploadResults={uploadResults}
                 onRemove={handleRemoveFile}
                 isUploading={isUploading}
               />
             )}
+
             {/* Tags */}
             <div className="flex flex-wrap gap-2 py-2">
               {selectedTags.map((tag) => (
@@ -237,6 +285,13 @@ await dispatch(createPost(postPayload)).unwrap();
                   className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
                 >
                   #{tag}
+                  <button
+                    type="button"
+                    onClick={() => handleTagToggle(tag)}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
                 </span>
               ))}
             </div>
@@ -248,26 +303,24 @@ await dispatch(createPost(postPayload)).unwrap();
           <div className="flex items-center justify-between">
             
             <div className="flex items-center space-x-4">
-          
-             <button
-              type="button"
-              className="text-blue-500 hover:text-blue-700 transition-colors"
-              onClick={() => document.getElementById("mediaInput")?.click()}
-            >
-              <FaCamera /> / <FaVideo />
-            </button>
-              <input
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              style={{ display: 'none' }}
-              id="mediaInput"
-              onChange={(e) => handleFilesSelect(e.target.files)}
-            />
-
-            
-
               
+              <button
+                type="button"
+                className="text-blue-500 hover:text-blue-700 transition-colors"
+                onClick={() => document.getElementById("mediaInput")?.click()}
+              >
+                <FaCamera /> / <FaVideo />
+              </button>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                style={{ display: 'none' }}
+                id="mediaInput"
+                onChange={(e) => handleFilesSelect(e.target.files)}
+              />
+
+        
               <div className="relative">
                 <button
                   type="button"
@@ -290,7 +343,7 @@ await dispatch(createPost(postPayload)).unwrap();
                 )}
               </div>
 
-            
+          
               <div className="relative group">
                 <button
                   type="button"

@@ -3,8 +3,8 @@ import type { LoginData } from '../types/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import { useAppDispatch, useAppSelector } from '../store/hook';
-import { login } from '../hooks/AuthSlice';
-import { fetchProfile } from '../hooks/ProfileSlice';
+import { login } from '../Slices/AuthSlice';
+import { fetchProfile } from '../Slices/ProfileSlice';
 
 import 'react-toastify/dist/ReactToastify.css';
 

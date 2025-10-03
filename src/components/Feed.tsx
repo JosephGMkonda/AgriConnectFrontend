@@ -1,7 +1,7 @@
 import type React from "react";
 import { useEffect, useRef, useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "../store/hook"
-import { fetchPosts } from "../hooks/creatingPost"
+import { fetchPosts } from "../Slices/creatingPost"
 import { PostCard } from "../re-components/PostCard"
 import { ErrorMessage } from "../re-components/errorMessage";
 import { LoadingSpinner } from "../re-components/LoadingSpinner";

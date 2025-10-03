@@ -4,11 +4,11 @@ import {
   fetchFriendRecommendations,
   setActiveTab,
   removeSuggestion
-} from '../hooks/FindFriendSlice';
+} from '../Slices/FindFriendSlice';
 
-import followUser from '../hooks/followSlice';
-import unfollowUser from '../hooks/followSlice';
-import {fetchFollowing} from '../hooks/followSlice';
+import followUser from '../Slices/followSlice';
+import unfollowUser from '../Slices/followSlice';
+import {fetchFollowing} from '../Slices/followSlice';
 
 import { 
   FaUser, 

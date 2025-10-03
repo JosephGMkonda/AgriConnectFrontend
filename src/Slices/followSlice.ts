@@ -32,10 +32,24 @@ export const followUser = createAsyncThunk(
 
 export const unfollowUser = createAsyncThunk(
   'follow/unfollowUser',
-  async (followId: number, { rejectWithValue }) => {
+  async (userId: number, { rejectWithValue }) => {
     try {
-      await api.delete(`/Follow/${followId}/`);
-      return followId;
+      const response = await api.get('/Follow/', {
+        params: {following: userId}
+      })
+
+      const followRelationships = response.data;
+      const userFollow = followRelationships.find((follow: any) => 
+        follow.following === userId
+      )
+
+      if(!userFollow){
+        throw new Error('Follow relationship not found');
+      }
+
+
+      await api.delete(`/Follow/${userFollow.id}/`);
+      return userId;
     } catch (error: any) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -47,15 +61,18 @@ export const unfollowUser = createAsyncThunk(
 
 export const fetchFollowing = createAsyncThunk(
   'follow/fetchFollowing',
-  async (_, { rejectWithValue }) => {
+  async (userId: number, { rejectWithValue }) => {
     try {
-      const response = await api.get('/Follow/');
+      const response = await api.get('/Follow/', {
+        params: { follower: userId }, 
+      });
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.error || error.message);
     }
   }
 );
+
 
 
 const followSlice = createSlice({
@@ -65,7 +82,25 @@ const followSlice = createSlice({
     clearFollowError: (state) => {
       state.error = null;
     },
+
+      syncFollowStatus: (state, action) => {
+        const {userId,isFollowing,followId} = action.payload;
+        const existingIndex = state.following.findIndex(f => f.userId === userId)
+
+        if(isFollowing && existingIndex === -1){
+          state.following.push({
+            userId,
+            followId: followId || Date.now()
+          });
+        } else if (!isFollowing && existingIndex !== -1){
+          state.following.splice(existingIndex, 1)
+        }
+    
+
   },
+
+  },
+
   extraReducers: (builder) => {
     builder
       // Follow user
@@ -75,10 +110,17 @@ const followSlice = createSlice({
       })
       .addCase(followUser.fulfilled, (state, action) => {
   state.loading = false;
-  state.following.push({
-    followId: action.payload.id,
-    userId: action.payload.following, 
+  const {id, following} = action.payload;
+  const exists = state.following.some(f => f.userId === following);
+  if(!exists){
+     state.following.push({
+    followId: id,
+    userId: following, 
   });
+
+  }
+
+ 
 })
       .addCase(followUser.rejected, (state, action) => {
         state.loading = false;
@@ -98,14 +140,15 @@ const followSlice = createSlice({
         state.error = action.payload as string;
       })
       // Fetch following
-      .addCase(fetchFollowing.fulfilled, (state, action) => {
+   .addCase(fetchFollowing.fulfilled, (state, action) => {
   state.following = action.payload.map((follow: any) => ({
     followId: follow.id,
-    userId: follow.following,
+    userId: follow.following,  
   }));
 });
+
   },
 });
 
-export const { clearFollowError } = followSlice.actions;
+export const { clearFollowError,syncFollowStatus } = followSlice.actions;
 export default followSlice.reducer;

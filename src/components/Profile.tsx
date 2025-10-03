@@ -1,11 +1,9 @@
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAppDispatch, useAppSelector } from '../store/hook';
-import { fetchUser } from '../hooks/AuthSlice';
-import { fetchProfile, updateProfile } from '../hooks/ProfileSlice';
-import { ImageUploadService } from '../service/imageUpload';
-import { useImageUpload } from '../hooks/useImageUpload';
+import { fetchUser } from '../Slices/AuthSlice';
+import { fetchProfile, updateProfile } from '../Slices/ProfileSlice'
 import userDefault from '../assets/userDefault.png';
 
 export const Profile: React.FC = () => {
@@ -16,7 +14,9 @@ export const Profile: React.FC = () => {
   
   const [isEditing, setIsEditing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const {uploadAvatar,uploading:avatarUploading,error:avatarError} = useImageUpload();
+
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null); 
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   const [formData, setFormData] = useState({
     bio: '',
@@ -25,6 +25,17 @@ export const Profile: React.FC = () => {
     avatar_url: '',
     location: ''
   });
+
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+      }
+    };
+  }, [avatarPreview]);
+
+
 
   useEffect(() => {
     if (!user) {
@@ -42,6 +53,11 @@ export const Profile: React.FC = () => {
         avatar_url: profile.avatar_url || '',
         location: profile.location || ''
       });
+
+       if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+        setAvatarPreview(null);
+      }
     }
   }, [profile]);
 
@@ -51,38 +67,77 @@ export const Profile: React.FC = () => {
     }
   }, [error]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
-      await dispatch(updateProfile(formData)).unwrap();
+      const data = new FormData();
+      data.append("bio", formData.bio);
+      data.append("phone_number", formData.phone_number);
+      data.append("farmType", formData.farmType);
+      data.append("location", formData.location);
+
+  
+      
+    
+  
+    if (avatarFile && avatarFile instanceof File) {
+      data.append("avatar_upload", avatarFile); 
+    } else if (avatarFile) {
+      console.error('avatarFile is not a File object:', avatarFile);
+    }
+
+      await dispatch(updateProfile(data)).unwrap();
+
+
+    
+      
+      if (avatarPreview) {
+        URL.revokeObjectURL(avatarPreview);
+        setAvatarPreview(null);
+      }
+      setAvatarFile(null);
+      
       setIsEditing(false);
       toast.success('Profile updated successfully!');
     } catch (error) {
       toast.error('Failed to update profile: ' + (error as string));
     }
-
-    console.log("FormData avatar_url:", formData.avatar_url);
-
   };
 
- const handleAvatarUpload = async (file: File) => {
-  if (!user) return;
 
-  try {
-    setUploadingAvatar(true);
-    const compressedFile = await ImageUploadService.compressImage(file, 800, 0.7);
-    const newAvatarUrl = await uploadAvatar(compressedFile, user.id); 
-    if (newAvatarUrl) {
-      setFormData(prev => ({ ...prev, avatar_url: newAvatarUrl }));
-      await dispatch(updateProfile({ avatar_url: newAvatarUrl })).unwrap();
-      toast.success('Avatar updated successfully!');
+
+
+ const handleAvatarUpload = (file: File) => {
+    
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview); 
     }
-  } catch (error: any) {
-    toast.error('Avatar upload failed: ' + error.message);
-  } finally {
-    setUploadingAvatar(false);
-  }
-};
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarPreview(previewUrl);
+    
+    
+    setFormData(prev => ({ 
+      ...prev, 
+      avatar_url: previewUrl 
+    }));
+    
+  
+    setAvatarFile(file);
+  };
+
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+   const getAvatarSrc = () => {
+    
+    if (avatarPreview) {
+      return avatarPreview; 
+    }
+    if (formData.avatar_url) {
+      return formData.avatar_url; 
+    }
+    return userDefault; 
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -102,6 +157,29 @@ export const Profile: React.FC = () => {
 
   }
 
+
+    const handleCancelEdit = () => {
+    
+    if (avatarPreview) {
+      URL.revokeObjectURL(avatarPreview);
+      setAvatarPreview(null);
+    }
+    setAvatarFile(null);
+    
+    
+    if (profile) {
+      setFormData({
+        bio: profile.bio || '',
+        phone_number: profile.phone_number || '',
+        farmType: profile.farmType || '',
+        avatar_url: profile.avatar_url || '',
+        location: profile.location || ''
+      });
+    }
+    
+    setIsEditing(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-amber-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -116,19 +194,24 @@ export const Profile: React.FC = () => {
           <div className="bg-gradient-to-r bg-green-50 p-8 text-green-800">
             <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-6">
               <div className="relative">
-                <img
-                  src={formData.avatar_url || userDefault}
-                  alt="Profile"
-                  className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover"
-                />
+              <img
+              src={getAvatarSrc()}
+              alt="Profile"
+              className="w-24 h-24 rounded-full border-4 border-white shadow-lg object-cover"
+            />
                 {isEditing && (
                   <label className="absolute bottom-0 right-0 bg-green-500 text-white p-2 rounded-full cursor-pointer hover:bg-green-600 transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => e.target.files?.[0] && handleAvatarUpload(e.target.files[0])}
-                      className="hidden"
-                    />
+                       <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      handleAvatarUpload(e.target.files[0]);
+                    }
+                  }}
+                  className="hidden"
+                />
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -219,13 +302,13 @@ export const Profile: React.FC = () => {
                   >
                     {updating ? 'Saving...' : 'Save Changes'}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition-colors"
-                  >
-                    Cancel
-                  </button>
+                    <button
+          type="button"
+          onClick={handleCancelEdit}
+          className="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition-colors"
+        >
+          Cancel
+        </button>
                 </div>
               </form>
             ) : (

@@ -16,13 +16,14 @@ const initialState: AuthState = {
   error: null,
 };
 
-// --- Thunks ---
+
 export const register = createAsyncThunk(
   "auth/register",
   async (userData: RegisterData, { rejectWithValue }) => {
     try {
       const user = await AuthService.register(userData);
-      return user; // returns User only
+      console.log("am registering", user)
+      return user; 
     } catch (error: any) {
       return rejectWithValue(error?.response?.data || error.message);
     }
@@ -35,6 +36,7 @@ export const login = createAsyncThunk(
     try {
       const result = await AuthService.login(credentials);
       localStorage.setItem("token", result.token);
+      console.log("Here is my results", result)
       return result;
     } catch (error: any) {
       return rejectWithValue(error?.response?.data || error.message);
